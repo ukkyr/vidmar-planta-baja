@@ -36,3 +36,10 @@ TanStack Start + React 19 + React Three Fiber / Three.js. Entrada de la vista: e
 ## Cómo seguir
 
 Cambiar un muro, una puerta o una ventana solo en el array `WALLS` de `house.ts`, con las cotas del JSON. Si el usuario corrige una cota a mano, esa corrección gana sobre el JSON y hay que anotarla acá.
+
+## Controles en el sitio publicado
+
+El sitio de Netlify sirve `index.html` y `recorrido-3d.html` (el mismo archivo).
+
+- «Ver maqueta 2D» y «Ver plano original» están en la barra de arriba, al lado del nombre del ambiente.
+- En el teléfono los dos joysticks aparecen abajo (izquierda camina, derecha mira) y se pide orientación horizontal. En el escritorio no se muestran y siguen WASD y el mouse.
