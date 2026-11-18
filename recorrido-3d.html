@@ -2,7 +2,9 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <title>Vidmar Arquitectura — Recorrido 3D Planta Baja</title>
   <style>
     :root {
@@ -38,7 +40,8 @@
       left: 0.75rem;
       right: 0.75rem;
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-start;
+      flex-wrap: wrap;
       gap: 0.75rem;
       pointer-events: none;
       align-items: flex-start;
@@ -66,7 +69,7 @@
       color: #fff;
     }
     .hint {
-      margin: 0;
+      margin: 0 0 0 auto;
       color: var(--color-fg);
       background: rgba(20, 18, 16, 0.85);
       border: 1px solid var(--color-line);
@@ -90,15 +93,52 @@
       opacity: 0.8;
       z-index: 5;
     }
-    .dock {
-      position: absolute;
-      right: 0.75rem;
-      bottom: 0.75rem;
-      z-index: 15;
+    .hud-actions {
       display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 0.5rem;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      pointer-events: auto;
+      align-items: center;
+    }
+    .joystick {
+      display: none;
+      position: fixed;
+      bottom: 1rem;
+      width: 128px;
+      height: 128px;
+      z-index: 12;
+      border-radius: 50%;
+      background: rgba(20, 18, 16, 0.35);
+      border: 1px solid var(--color-line);
+      touch-action: none;
+      pointer-events: auto;
+    }
+    #joystick-left { left: 1rem; }
+    #joystick-right { right: 1rem; }
+    .rotate-hint {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background: rgba(20, 18, 16, 0.94);
+      color: var(--color-fg);
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 1.5rem;
+      font-size: 1.15rem;
+      line-height: 1.45;
+    }
+    @media (pointer: coarse) {
+      .joystick { display: block; }
+      .hint { display: none; }
+      .cross { display: none; }
+    }
+    @media (pointer: coarse) and (orientation: portrait) {
+      .rotate-hint { display: flex; }
+    }
+    @media (pointer: fine) {
+      .joystick { display: none; }
     }
     .plan-btn, .plan-close {
       background: var(--color-accent);
@@ -279,6 +319,7 @@
   
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/nipplejs@0.10.2/dist/nipplejs.min.js"></script>
 </head>
 <body>
   <div id="stage"></div>
@@ -288,6 +329,10 @@
       <span class="kicker">Vidmar · Planta Baja</span>
       <strong id="room-name">Entrada</strong>
     </div>
+    <div class="hud-actions">
+      <button class="plan-btn" id="btn-maqueta" type="button">Ver maqueta 2D</button>
+      <button class="plan-btn" id="btn-plano" type="button">Ver plano original</button>
+    </div>
     <p class="hint">
       <strong>W A S D</strong> camina · <strong>Arrastrá el mouse</strong> para mirar<br>
       <strong>Shift</strong> corre · <strong>Techo 2.40m</strong> · Norte en -Z
@@ -295,11 +340,9 @@
   </div>
 
   <div class="cross"></div>
-
-  <div class="dock">
-    <button class="plan-btn" id="btn-maqueta">Ver maqueta 2D</button>
-    <button class="plan-btn" id="btn-plano">Ver plano original</button>
-  </div>
+  <div id="joystick-left" class="joystick" aria-hidden="true"></div>
+  <div id="joystick-right" class="joystick" aria-hidden="true"></div>
+  <div class="rotate-hint">Girá el teléfono a horizontal para recorrer la casa.</div>
 
   <!-- Modal Plano Original -->
   <div id="modal-plano" class="overlay-modal">
@@ -1020,6 +1063,8 @@
     let pitch = -0.12;
     const euler = new THREE.Euler(0, 0, 0, 'YXZ');
     const keys = new Set();
+    const stick = { x: 0, y: 0 };
+    const lookStick = { x: 0, y: 0 };
     let isDragging = false;
     let lastMouseX = 0;
     let lastMouseY = 0;
@@ -1039,6 +1084,7 @@
     const stageEl = document.getElementById('stage');
     stageEl.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
+      if (e.target.closest && e.target.closest('.joystick')) return;
       isDragging = true;
       lastMouseX = e.clientX;
       lastMouseY = e.clientY;
@@ -1059,6 +1105,29 @@
     window.addEventListener('pointerup', stopDrag);
     window.addEventListener('pointercancel', stopDrag);
 
+    window.addEventListener('load', () => {
+      try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape'); }
+      catch (e) {}
+    });
+
+    if (window.matchMedia('(pointer: coarse)').matches && typeof nipplejs !== 'undefined') {
+      const zoneOpts = { mode: 'static', position: { left: '50%', top: '50%' }, color: '#f4efe6', size: 112, restOpacity: 0.55 };
+      const moveLeft = nipplejs.create({ ...zoneOpts, zone: document.getElementById('joystick-left') });
+      moveLeft.on('move', (_, data) => {
+        const force = Math.min(1, (data.distance || 0) / 56);
+        stick.x = (data.vector?.x || 0) * force;
+        stick.y = (data.vector?.y || 0) * force;
+      });
+      moveLeft.on('end', () => { stick.x = 0; stick.y = 0; });
+      const lookRight = nipplejs.create({ ...zoneOpts, zone: document.getElementById('joystick-right') });
+      lookRight.on('move', (_, data) => {
+        const force = Math.min(1, (data.distance || 0) / 56);
+        lookStick.x = (data.vector?.x || 0) * force;
+        lookStick.y = (data.vector?.y || 0) * force;
+      });
+      lookRight.on('end', () => { lookStick.x = 0; lookStick.y = 0; });
+    }
+
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
@@ -1077,8 +1146,13 @@
         keys.clear();
       }
 
-      const fwd = !isModalOpen() ? ((keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0)) : 0;
-      const str = !isModalOpen() ? ((keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0)) : 0;
+      const stickOn = !isModalOpen();
+      const fwd = (stickOn ? ((keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0)) : 0) + (stickOn ? stick.y : 0);
+      const str = (stickOn ? ((keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0)) : 0) + (stickOn ? stick.x : 0);
+      if (stickOn && (lookStick.x || lookStick.y)) {
+        yaw -= lookStick.x * 1.7 * delta;
+        pitch = Math.max(-1.05, Math.min(1.05, pitch + lookStick.y * 1.25 * delta));
+      }
 
       if (fwd !== 0 || str !== 0) {
         const fx = -Math.sin(yaw);
