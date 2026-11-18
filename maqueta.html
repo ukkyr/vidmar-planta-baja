@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verificación 2D - Planta Baja (Vidmar Arquitectura)</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f4f5f7;
+      color: #1f2937;
+    }
+    header {
+      background: #111827;
+      color: #fff;
+      padding: 12px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    header h1 { margin: 0; font-size: 16px; font-weight: 600; }
+    .legend {
+      display: flex;
+      gap: 14px;
+      font-size: 12px;
+      background: rgba(255,255,255,0.08);
+      padding: 5px 10px;
+      border-radius: 6px;
+    }
+    .swatch {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      font-size: 13px;
+    }
+    .controls label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+    main {
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .canvas-card {
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      padding: 12px;
+      width: 100%;
+      max-width: 840px;
+    }
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #ffffff;
+    }
+    .dim-label {
+      font-size: 8px;
+      font-weight: 700;
+      fill: #111827;
+      paint-order: stroke;
+      stroke: #ffffff;
+      stroke-width: 2.6px;
+      stroke-linejoin: round;
+    }
+    .door-label {
+      font-size: 7.2px;
+      font-weight: 700;
+      fill: #b91c1c;
+      paint-order: stroke;
+      stroke: #ffffff;
+      stroke-width: 2.4px;
+      stroke-linejoin: round;
+    }
+    .win-label {
+      font-size: 7.2px;
+      font-weight: 700;
+      fill: #1d4ed8;
+      paint-order: stroke;
+      stroke: #ffffff;
+      stroke-width: 2.4px;
+      stroke-linejoin: round;
+    }
+    .op-label {
+      font-size: 7.2px;
+      font-weight: 700;
+      fill: #047857;
+      paint-order: stroke;
+      stroke: #ffffff;
+      stroke-width: 2.4px;
+      stroke-linejoin: round;
+    }
+    .room-label {
+      font-size: 8.8px;
+      font-weight: 700;
+      fill: #6b7280;
+      text-anchor: middle;
+    }
+    .axis-label {
+      font-size: 10px;
+      fill: #4b5563;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Planta Baja — Verificación 2D [X, Z]</h1>
+    <div class="legend">
+      <span><i class="swatch" style="background:#000000;"></i>Muros</span>
+      <span><i class="swatch" style="background:#e61919;"></i>Puertas (D)</span>
+      <span><i class="swatch" style="background:#0066ff;"></i>Ventanas (WIN)</span>
+      <span><i class="swatch" style="background:#047857;"></i>Vanos (OP)</span>
+    </div>
+    <div class="controls">
+      <label><input type="checkbox" checked onchange="toggleLayer('layer-grid', this.checked)" /> Grilla</label>
+      <label><input type="checkbox" checked onchange="toggleLayer('layer-rooms', this.checked)" /> Ambientes</label>
+      <label><input type="checkbox" checked onchange="toggleLayer('layer-dims', this.checked)" /> Muros y Cotas</label>
+      <label><input type="checkbox" checked onchange="toggleLayer('layer-codes', this.checked)" /> Cód. Puertas/Ventanas/Vanos</label>
+    </div>
+  </header>
+
+  <main>
+    <div class="canvas-card">
+      <svg viewBox="0 0 800 1260" width="800" height="1260" xmlns="http://www.w3.org/2000/svg">
+        <!-- GRILLA Y EJES (Escala: 34px = 1m, Origen [0,0] = [65, 1200]) -->
+        <g id="layer-grid">
+          <line x1="65" y1="1200" x2="745" y2="1200" stroke="#9ca3af" stroke-width="1.2" />
+          <line x1="65" y1="1030" x2="745" y2="1030" stroke="#e5e7eb" stroke-width="1" />
+          <line x1="65" y1="860" x2="745" y2="860" stroke="#e5e7eb" stroke-width="1" />
+          <line x1="65" y1="690" x2="745" y2="690" stroke="#e5e7eb" stroke-width="1" />
+          <line x1="65" y1="520" x2="745" y2="520" stroke="#e5e7eb" stroke-width="1" />
+          <line x1="65" y1="350" x2="745" y2="350" stroke="#e5e7eb" stroke-width="1" />
+          <line x1="65" y1="180" x2="745" y2="180" stroke="#e5e7eb" stroke-width="1" />
+          <line x1="65" y1="44" x2="745" y2="44" stroke="#e5e7eb" stroke-width="1" />
+
+          <line x1="65" y1="1200" x2="65" y2="44" stroke="#9ca3af" stroke-width="1.2" />
+          <line x1="235" y1="1200" x2="235" y2="44" stroke="#e5e7eb" stroke-width="1" />
+          <line x1="405" y1="1200" x2="405" y2="44" stroke="#e5e7eb" stroke-width="1" />
+          <line x1="575" y1="1200" x2="575" y2="44" stroke="#e5e7eb" stroke-width="1" />
+          <line x1="745" y1="1200" x2="745" y2="44" stroke="#e5e7eb" stroke-width="1" />
+
+          <text x="65" y="1218" text-anchor="middle" class="axis-label">0m</text>
+          <text x="235" y="1218" text-anchor="middle" class="axis-label">5m</text>
+          <text x="405" y="1218" text-anchor="middle" class="axis-label">10m</text>
+          <text x="575" y="1218" text-anchor="middle" class="axis-label">15m</text>
+          <text x="745" y="1218" text-anchor="middle" class="axis-label">20m</text>
+
+          <text x="56" y="1203" text-anchor="end" class="axis-label">0m</text>
+          <text x="56" y="1033" text-anchor="end" class="axis-label">5m</text>
+          <text x="56" y="863" text-anchor="end" class="axis-label">10m</text>
+          <text x="56" y="693" text-anchor="end" class="axis-label">15m</text>
+          <text x="56" y="523" text-anchor="end" class="axis-label">20m</text>
+          <text x="56" y="353" text-anchor="end" class="axis-label">25m</text>
+          <text x="56" y="183" text-anchor="end" class="axis-label">30m</text>
+
+          <circle cx="65" cy="1200" r="5" fill="#10b981" />
+          <text x="60" y="1236" class="axis-label" font-weight="bold">Origen [0, 0]</text>
+        </g>
+
+        <!-- PERGOLA (3.50m x 4.95m) -->
+        <rect x="515.5" y="72.9" width="168.3" height="119.0" fill="none" stroke="#9ca3af" stroke-width="1.3" stroke-dasharray="5,4" />
+
+        <!-- AMBIENTES -->
+        <g id="layer-rooms">
+          <text x="177.2" y="1091.2" class="room-label">COCHERA (6.00x6.00)</text>
+          <text x="367.6" y="1091.2" class="room-label">ENTRADA</text>
+          <text x="161.9" y="948.0" class="room-label">LAVADERO</text>
+          <text x="243.5" y="948.0" class="room-label">DESPENSA</text>
+          <text x="365.9" y="943.3" class="room-label">RECEP</text>
+          <text x="486.6" y="1043.6" class="room-label">PATIO INT.</text>
+          <text x="603.9" y="1115.0" class="room-label">SUITE (4.65x4.00)</text>
+          <text x="586.9" y="1001.5" class="room-label">VESTIDOR (3.50)</text>
+          <text x="564.8" y="926.3" class="room-label">BAÑO (2.20)</text>
+          <text x="622.5" y="918.0" class="room-label">ANTEB.</text>
+          <text x="665.1" y="936.0" class="room-label">ACC.</text>
+          <text x="253.7" y="798.8" class="room-label">COCINA / ISLA</text>
+          <text x="459.4" y="798.8" class="room-label">ESTAR</text>
+          <text x="149.15" y="605.0" class="room-label">PARRILLA</text>
+          <text x="348.9" y="628.8" class="room-label">GALERIA</text>
+          <text x="541.8" y="608.4" class="room-label">PATIO LUZ</text>
+          <text x="593.0" y="675.0" class="room-label">BAÑO 1</text>
+          <text x="603.9" y="606.7" class="room-label">BAÑO 2</text>
+          <text x="593.0" y="540.0" class="room-label">BAÑO 3</text>
+          <text x="661.7" y="606.7" class="room-label" transform="rotate(-90 661.7 606.7)">PASILLO BAÑO</text>
+          <text x="577.6" y="442.7" class="room-label">DORMITORIO</text>
+          <text x="577.6" y="346.0" class="room-label">VESTIDOR SUP. (1.60)</text>
+          <text x="661.7" y="380.0" class="room-label" transform="rotate(-90 661.7 380.0)">PASILLO</text>
+          <text x="599.65" y="246.0" class="room-label">ESTUDIO / HUESPEDES</text>
+          <text x="599.65" y="132.4" class="room-label">PERGOLA (3.50x4.95)</text>
+        </g>
+
+        <!-- MUROS (NEGRO) -->
+        <g id="layer-walls" stroke="#000000" stroke-linecap="square">
+          <!-- Cochera & Servicio -->
+          <line x1="65" y1="1194.9" x2="105.8" y2="1194.9" stroke-width="10.2" />
+          <line x1="263.9" y1="1194.9" x2="289.4" y2="1194.9" stroke-width="10.2" />
+          <line x1="116" y1="980.7" x2="284.3" y2="980.7" stroke-width="10.2" />
+          <line x1="116" y1="980.7" x2="116" y2="895.7" stroke-width="10.2" />
+          <line x1="116" y1="895.7" x2="206.1" y2="895.7" stroke-width="10.2" />
+          <line x1="205.25" y1="980.7" x2="205.25" y2="895.7" stroke-width="5.1" />
+          <line x1="206.1" y1="895.7" x2="284.3" y2="895.7" stroke-width="10.2" />
+          <line x1="284.3" y1="980.7" x2="284.3" y2="895.7" stroke-width="10.2" />
+          <!-- Recep & Ventanal W14 -->
+          <line x1="284.3" y1="980.7" x2="447.5" y2="980.7" stroke-width="10.2" />
+          <line x1="314.9" y1="895.7" x2="416.9" y2="895.7" stroke-width="10.2" />
+          <line x1="447.5" y1="1179.6" x2="447.5" y2="895.7" stroke-width="10.2" />
+          <!-- Estar & Cocina -->
+          <line x1="207.8" y1="895.7" x2="207.8" y2="698.5" stroke-width="10.2" />
+          <line x1="207.8" y1="698.5" x2="350.6" y2="698.5" stroke-width="10.2" />
+          <line x1="364.2" y1="698.5" x2="505.3" y2="698.5" stroke-width="10.2" />
+          <line x1="505.3" y1="698.5" x2="568.2" y2="698.5" stroke-width="10.2" />
+          <line x1="568.2" y1="698.5" x2="683.8" y2="698.5" stroke-width="10.2" />
+          <line x1="447.5" y1="895.7" x2="525.7" y2="895.7" stroke-width="10.2" />
+          <line x1="683.8" y1="895.7" x2="683.8" y2="698.5" stroke-width="10.2" />
+          <!-- Muro W22 (5.20m x 0.60m) con espacio libre OP07 (0.60m) antes de W19 -->
+          <line x1="639.6" y1="895.7" x2="639.6" y2="718.9" stroke-width="20.4" />
+          <!-- Parrilla / Galeria -->
+          <line x1="90.5" y1="557.4" x2="207.8" y2="557.4" stroke-width="10.2" />
+          <line x1="90.5" y1="647.5" x2="207.8" y2="647.5" stroke-width="10.2" />
+          <line x1="207.8" y1="647.5" x2="207.8" y2="557.4" stroke-width="10.2" />
+          <!-- Suite -->
+          <line x1="447.5" y1="1179.6" x2="683.8" y2="1179.6" stroke-width="10.2" />
+          <line x1="525.7" y1="1179.6" x2="525.7" y2="895.7" stroke-width="10.2" />
+          <line x1="683.8" y1="1179.6" x2="683.8" y2="895.7" stroke-width="10.2" />
+          <line x1="525.7" y1="1038.5" x2="647.25" y2="1038.5" stroke-width="5.1" />
+          <line x1="525.7" y1="957.75" x2="647.25" y2="957.75" stroke-width="5.1" />
+          <line x1="603.05" y1="957.75" x2="603.05" y2="895.7" stroke-width="5.1" />
+          <line x1="647.25" y1="1038.5" x2="647.25" y2="957.75" stroke-width="5.1" />
+          <line x1="525.7" y1="895.7" x2="683.8" y2="895.7" stroke-width="10.2" />
+          <line x1="647.25" y1="929.7" x2="647.25" y2="895.7" stroke-width="5.1" />
+          <!-- Baños 1, 2, 3 -->
+          <line x1="568.2" y1="698.5" x2="568.2" y2="514.9" stroke-width="10.2" />
+          <line x1="639.6" y1="698.5" x2="639.6" y2="514.9" stroke-width="5.1" />
+          <line x1="568.2" y1="637.3" x2="639.6" y2="637.3" stroke-width="5.1" />
+          <line x1="568.2" y1="576.1" x2="639.6" y2="576.1" stroke-width="5.1" />
+          <!-- Dormitorio / Vestidor Sup. / Pasillo con W45 conectado a W42 (6.45m, solo puerta D08) / Estudio -->
+          <line x1="515.5" y1="514.9" x2="639.6" y2="514.9" stroke-width="10.2" />
+          <line x1="683.8" y1="698.5" x2="683.8" y2="191.9" stroke-width="10.2" />
+          <line x1="515.5" y1="698.5" x2="515.5" y2="191.9" stroke-width="10.2" />
+          <line x1="639.6" y1="514.9" x2="639.6" y2="284.6" stroke-width="5.1" />
+          <line x1="546.1" y1="370.4" x2="639.6" y2="370.4" stroke-width="5.1" />
+          <line x1="515.5" y1="316.0" x2="639.6" y2="316.0" stroke-width="5.1" />
+          <line x1="515.5" y1="191.9" x2="683.8" y2="191.9" stroke-width="10.2" />
+        </g>
+
+        <!-- ESPACIOS VACÍOS / VANOS ABIERTOS SIN PUERTA -->
+        <g id="layer-openings">
+          <line x1="205.25" y1="929.7" x2="205.25" y2="900.8" stroke="#ffffff" stroke-width="8" stroke-linecap="butt" />
+          <line x1="205.25" y1="929.7" x2="205.25" y2="900.8" stroke="#047857" stroke-width="1.4" stroke-dasharray="2.5,2" />
+
+          <line x1="246.9" y1="895.7" x2="274.1" y2="895.7" stroke="#ffffff" stroke-width="12" stroke-linecap="butt" />
+          <line x1="246.9" y1="895.7" x2="274.1" y2="895.7" stroke="#047857" stroke-width="1.4" stroke-dasharray="2.5,2" />
+
+          <line x1="647.25" y1="1018.1" x2="647.25" y2="978.15" stroke="#ffffff" stroke-width="8" stroke-linecap="butt" />
+          <line x1="647.25" y1="1018.1" x2="647.25" y2="978.15" stroke="#047857" stroke-width="1.4" stroke-dasharray="2.5,2" />
+
+          <line x1="647.25" y1="957.75" x2="647.25" y2="929.7" stroke="#047857" stroke-width="1.4" stroke-dasharray="2.5,2" />
+
+          <line x1="639.6" y1="718.9" x2="639.6" y2="698.5" stroke="#047857" stroke-width="1.4" stroke-dasharray="2.5,2" />
+
+          <line x1="651.5" y1="698.5" x2="678.7" y2="698.5" stroke="#ffffff" stroke-width="12" stroke-linecap="butt" />
+          <line x1="651.5" y1="698.5" x2="678.7" y2="698.5" stroke="#047857" stroke-width="1.4" stroke-dasharray="2.5,2" />
+
+          <line x1="639.6" y1="620.3" x2="639.6" y2="593.1" stroke="#ffffff" stroke-width="8" stroke-linecap="butt" />
+          <line x1="639.6" y1="620.3" x2="639.6" y2="593.1" stroke="#047857" stroke-width="1.4" stroke-dasharray="2.5,2" />
+
+          <line x1="515.5" y1="370.4" x2="546.1" y2="370.4" stroke="#047857" stroke-width="1.4" stroke-dasharray="2.5,2" />
+        </g>
+
+        <!-- VENTANAS Y VENTANALES (AZUL) -->
+        <g id="layer-windows">
+          <line x1="121.1" y1="895.7" x2="201.0" y2="895.7" stroke="#ffffff" stroke-width="12" />
+          <line x1="121.1" y1="895.7" x2="201.0" y2="895.7" stroke="#0066ff" stroke-width="8" />
+          <line x1="121.1" y1="895.7" x2="201.0" y2="895.7" stroke="#dbeafe" stroke-width="3" />
+
+          <line x1="447.5" y1="975.6" x2="447.5" y2="900.8" stroke="#ffffff" stroke-width="12" />
+          <line x1="447.5" y1="975.6" x2="447.5" y2="900.8" stroke="#0066ff" stroke-width="8" />
+          <line x1="447.5" y1="975.6" x2="447.5" y2="900.8" stroke="#dbeafe" stroke-width="3" />
+
+          <line x1="447.5" y1="1174.5" x2="447.5" y2="985.8" stroke="#ffffff" stroke-width="12" />
+          <line x1="447.5" y1="1174.5" x2="447.5" y2="985.8" stroke="#0066ff" stroke-width="8" />
+          <line x1="447.5" y1="1174.5" x2="447.5" y2="985.8" stroke="#dbeafe" stroke-width="3" />
+
+          <line x1="452.6" y1="1179.6" x2="520.6" y2="1179.6" stroke="#ffffff" stroke-width="12" />
+          <line x1="452.6" y1="1179.6" x2="520.6" y2="1179.6" stroke="#0066ff" stroke-width="8" />
+          <line x1="452.6" y1="1179.6" x2="520.6" y2="1179.6" stroke="#dbeafe" stroke-width="3" />
+
+          <line x1="207.8" y1="839.6" x2="207.8" y2="751.2" stroke="#ffffff" stroke-width="12" />
+          <line x1="207.8" y1="839.6" x2="207.8" y2="751.2" stroke="#0066ff" stroke-width="8" />
+          <line x1="207.8" y1="839.6" x2="207.8" y2="751.2" stroke="#dbeafe" stroke-width="3" />
+
+          <line x1="233.3" y1="698.5" x2="342.1" y2="698.5" stroke="#ffffff" stroke-width="12" />
+          <line x1="233.3" y1="698.5" x2="342.1" y2="698.5" stroke="#0066ff" stroke-width="8" />
+          <line x1="233.3" y1="698.5" x2="342.1" y2="698.5" stroke="#dbeafe" stroke-width="3" />
+
+          <line x1="371.0" y1="698.5" x2="496.8" y2="698.5" stroke="#ffffff" stroke-width="12" />
+          <line x1="371.0" y1="698.5" x2="496.8" y2="698.5" stroke="#0066ff" stroke-width="8" />
+          <line x1="371.0" y1="698.5" x2="496.8" y2="698.5" stroke="#dbeafe" stroke-width="3" />
+
+          <line x1="456.0" y1="895.7" x2="517.2" y2="895.7" stroke="#ffffff" stroke-width="12" />
+          <line x1="456.0" y1="895.7" x2="517.2" y2="895.7" stroke="#0066ff" stroke-width="8" />
+          <line x1="456.0" y1="895.7" x2="517.2" y2="895.7" stroke="#dbeafe" stroke-width="3" />
+
+          <line x1="683.8" y1="890.6" x2="683.8" y2="703.6" stroke="#ffffff" stroke-width="12" />
+          <line x1="683.8" y1="890.6" x2="683.8" y2="703.6" stroke="#0066ff" stroke-width="8" />
+          <line x1="683.8" y1="890.6" x2="683.8" y2="703.6" stroke="#dbeafe" stroke-width="3" />
+
+          <line x1="525.7" y1="1152.4" x2="525.7" y2="1067.4" stroke="#ffffff" stroke-width="12" />
+          <line x1="525.7" y1="1152.4" x2="525.7" y2="1067.4" stroke="#0066ff" stroke-width="8" />
+          <line x1="525.7" y1="1152.4" x2="525.7" y2="1067.4" stroke="#dbeafe" stroke-width="3" />
+
+          <line x1="525.7" y1="1021.5" x2="525.7" y2="973.9" stroke="#ffffff" stroke-width="12" />
+          <line x1="525.7" y1="1021.5" x2="525.7" y2="973.9" stroke="#0066ff" stroke-width="8" />
+          <line x1="525.7" y1="1021.5" x2="525.7" y2="973.9" stroke="#dbeafe" stroke-width="3" />
+
+          <line x1="525.7" y1="939.9" x2="525.7" y2="912.7" stroke="#ffffff" stroke-width="12" />
+          <line x1="525.7" y1="939.9" x2="525.7" y2="912.7" stroke="#0066ff" stroke-width="8" />
+          <line x1="525.7" y1="939.9" x2="525.7" y2="912.7" stroke="#dbeafe" stroke-width="3" />
+
+          <line x1="568.2" y1="681.5" x2="568.2" y2="654.3" stroke="#ffffff" stroke-width="12" />
+          <line x1="568.2" y1="681.5" x2="568.2" y2="654.3" stroke="#0066ff" stroke-width="8" />
+          <line x1="568.2" y1="559.1" x2="568.2" y2="531.9" stroke="#ffffff" stroke-width="12" />
+          <line x1="568.2" y1="559.1" x2="568.2" y2="531.9" stroke="#0066ff" stroke-width="8" />
+
+          <line x1="515.5" y1="693.4" x2="515.5" y2="520.0" stroke="#ffffff" stroke-width="12" />
+          <line x1="515.5" y1="693.4" x2="515.5" y2="520.0" stroke="#0066ff" stroke-width="8" />
+          <line x1="515.5" y1="693.4" x2="515.5" y2="520.0" stroke="#dbeafe" stroke-width="3" />
+
+          <line x1="515.5" y1="480.9" x2="515.5" y2="419.7" stroke="#ffffff" stroke-width="12" />
+          <line x1="515.5" y1="480.9" x2="515.5" y2="419.7" stroke="#0066ff" stroke-width="8" />
+
+          <line x1="515.5" y1="356.8" x2="515.5" y2="329.6" stroke="#ffffff" stroke-width="12" />
+          <line x1="515.5" y1="356.8" x2="515.5" y2="329.6" stroke="#0066ff" stroke-width="8" />
+
+          <line x1="515.5" y1="268.4" x2="515.5" y2="210.6" stroke="#ffffff" stroke-width="12" />
+          <line x1="515.5" y1="268.4" x2="515.5" y2="210.6" stroke="#0066ff" stroke-width="8" />
+
+          <line x1="541.0" y1="191.9" x2="658.3" y2="191.9" stroke="#ffffff" stroke-width="12" />
+          <line x1="541.0" y1="191.9" x2="658.3" y2="191.9" stroke="#0066ff" stroke-width="8" />
+        </g>
+
+        <!-- PUERTAS + ARCOS DE APERTURA (ROJO) -->
+        <g id="layer-doors">
+          <line x1="116" y1="902.5" x2="116" y2="929.7" stroke="#ffffff" stroke-width="12" />
+          <line x1="116" y1="902.5" x2="143.2" y2="902.5" stroke="#e61919" stroke-width="2.3" />
+          <path d="M 143.2 902.5 A 27.2 27.2 0 0 1 116 929.7" fill="rgba(230,25,25,0.08)" stroke="#e61919" stroke-width="1.3" stroke-dasharray="3,2.5" />
+
+          <line x1="386.3" y1="980.7" x2="352.3" y2="980.7" stroke="#ffffff" stroke-width="12" />
+          <line x1="386.3" y1="980.7" x2="386.3" y2="946.7" stroke="#e61919" stroke-width="2.3" />
+          <path d="M 386.3 946.7 A 34 34 0 0 0 352.3 980.7" fill="rgba(230,25,25,0.08)" stroke="#e61919" stroke-width="1.3" stroke-dasharray="3,2.5" />
+
+          <line x1="603.05" y1="953.5" x2="603.05" y2="928.0" stroke="#ffffff" stroke-width="8" />
+          <line x1="603.05" y1="953.5" x2="577.55" y2="953.5" stroke="#e61919" stroke-width="2.3" />
+          <path d="M 577.55 953.5 A 25.5 25.5 0 0 1 603.05 928.0" fill="rgba(230,25,25,0.08)" stroke="#e61919" stroke-width="1.3" stroke-dasharray="3,2.5" />
+
+          <line x1="677.0" y1="895.7" x2="649.8" y2="895.7" stroke="#ffffff" stroke-width="12" />
+          <line x1="677.0" y1="895.7" x2="677.0" y2="922.9" stroke="#e61919" stroke-width="2.3" />
+          <path d="M 677.0 922.9 A 27.2 27.2 0 0 1 649.8 895.7" fill="rgba(230,25,25,0.08)" stroke="#e61919" stroke-width="1.3" stroke-dasharray="3,2.5" />
+
+          <line x1="634.5" y1="637.3" x2="609.0" y2="637.3" stroke="#ffffff" stroke-width="8" />
+          <line x1="634.5" y1="637.3" x2="634.5" y2="662.8" stroke="#e61919" stroke-width="2.3" />
+          <path d="M 634.5 662.8 A 25.5 25.5 0 0 1 609.0 637.3" fill="rgba(230,25,25,0.08)" stroke="#e61919" stroke-width="1.3" stroke-dasharray="3,2.5" />
+
+          <line x1="634.5" y1="576.1" x2="609.0" y2="576.1" stroke="#ffffff" stroke-width="8" />
+          <line x1="634.5" y1="576.1" x2="634.5" y2="550.6" stroke="#e61919" stroke-width="2.3" />
+          <path d="M 634.5 550.6 A 25.5 25.5 0 0 0 609.0 576.1" fill="rgba(230,25,25,0.08)" stroke="#e61919" stroke-width="1.3" stroke-dasharray="3,2.5" />
+
+          <line x1="639.6" y1="509.8" x2="639.6" y2="482.6" stroke="#ffffff" stroke-width="8" />
+          <line x1="639.6" y1="509.8" x2="612.4" y2="509.8" stroke="#e61919" stroke-width="2.3" />
+          <path d="M 612.4 509.8 A 27.2 27.2 0 0 1 639.6 482.6" fill="rgba(230,25,25,0.08)" stroke="#e61919" stroke-width="1.3" stroke-dasharray="3,2.5" />
+
+          <line x1="683.8" y1="509.8" x2="683.8" y2="482.6" stroke="#ffffff" stroke-width="12" />
+          <line x1="683.8" y1="509.8" x2="711.0" y2="509.8" stroke="#e61919" stroke-width="2.3" />
+          <path d="M 711.0 509.8 A 27.2 27.2 0 0 0 683.8 482.6" fill="rgba(230,25,25,0.08)" stroke="#e61919" stroke-width="1.3" stroke-dasharray="3,2.5" />
+        </g>
+
+        <!-- NOMENCLATURA Y COTAS DE MUROS -->
+        <g id="layer-dims">
+          <text x="85.4" y="1210" text-anchor="middle" class="dim-label">W01: 1.20m</text>
+          <text x="276.6" y="1210" text-anchor="middle" class="dim-label">W02: 0.75m</text>
+          <text x="200.15" y="993" text-anchor="middle" class="dim-label">W05: 4.95m</text>
+
+          <text x="104" y="948" text-anchor="middle" class="dim-label" transform="rotate(-90 104 948)">W06: 2.50m</text>
+          <text x="161" y="881" text-anchor="middle" class="dim-label">W07: 2.65m</text>
+          <text x="195" y="952" text-anchor="middle" class="dim-label" transform="rotate(-90 195 952)">W08: 2.50m</text>
+          <text x="235" y="884" text-anchor="middle" class="dim-label">W09: 2.30m</text>
+          <text x="296" y="938" text-anchor="middle" class="dim-label" transform="rotate(-90 296 938)">W10: 2.50m</text>
+
+          <text x="342" y="993" text-anchor="middle" class="dim-label">W11: 4.80m</text>
+          <text x="366" y="884" text-anchor="middle" class="dim-label">W12: 3.00m</text>
+          <text x="436" y="1080" text-anchor="middle" class="dim-label" transform="rotate(-90 436 1080)">W14: 8.35m</text>
+
+          <text x="196" y="797" text-anchor="middle" class="dim-label" transform="rotate(-90 196 797)">W15: 5.80m</text>
+          <text x="287" y="683" text-anchor="middle" class="dim-label">W16: 4.20m</text>
+          <text x="435" y="683" text-anchor="middle" class="dim-label">W17: 4.15m</text>
+          <text x="537" y="687" text-anchor="middle" class="dim-label">W18: 1.85m</text>
+          <text x="605" y="687" text-anchor="middle" class="dim-label">W19: 3.40m</text>
+          <text x="486.6" y="881" text-anchor="middle" class="dim-label">W20: 2.30m</text>
+          <text x="696" y="797" text-anchor="middle" class="dim-label" transform="rotate(-90 696 797)">W21: 5.80m</text>
+          <text x="622" y="807" text-anchor="middle" class="dim-label" transform="rotate(-90 622 807)">W22: 5.20m (0.60)</text>
+
+          <text x="219" y="602.5" text-anchor="middle" class="dim-label" transform="rotate(-90 219 602.5)">W24: 2.65m</text>
+          <text x="149" y="546" text-anchor="middle" class="dim-label">W25: 3.45m</text>
+          <text x="149" y="659" text-anchor="middle" class="dim-label">W26: 3.45m</text>
+
+          <text x="575" y="1192" text-anchor="middle" class="dim-label">W28: 6.95m</text>
+          <text x="512" y="1038" text-anchor="middle" class="dim-label" transform="rotate(-90 512 1038)">W29: 8.35m</text>
+          <text x="696" y="1038" text-anchor="middle" class="dim-label" transform="rotate(-90 696 1038)">W30: 8.35m</text>
+          <text x="585" y="1049" text-anchor="middle" class="dim-label">W31: 3.50m</text>
+          <text x="585" y="969" text-anchor="middle" class="dim-label">W33: 3.50m</text>
+          <text x="593" y="914" text-anchor="middle" class="dim-label" transform="rotate(-90 593 914)">W36: 1.83m</text>
+          <text x="659" y="998" text-anchor="middle" class="dim-label" transform="rotate(-90 659 998)">W37: 2.38m</text>
+          <text x="605" y="884" text-anchor="middle" class="dim-label">W52: 4.65m</text>
+          <text x="639" y="913" text-anchor="middle" class="dim-label" transform="rotate(-90 639 913)">W53: 1.00m</text>
+
+          <text x="556" y="606" text-anchor="middle" class="dim-label" transform="rotate(-90 556 606)">W38: 5.40m</text>
+          <text x="650" y="550" text-anchor="middle" class="dim-label" transform="rotate(-90 650 550)">W39: 5.40m</text>
+          <text x="592" y="632" text-anchor="middle" class="dim-label">W40: 2.10m</text>
+          <text x="592" y="586" text-anchor="middle" class="dim-label">W41: 2.10m</text>
+
+          <text x="577.5" y="504" text-anchor="middle" class="dim-label">W42: 3.65m</text>
+          <text x="696" y="595" text-anchor="middle" class="dim-label" transform="rotate(-90 696 595)">W43: 9.05m</text>
+          <text x="503" y="385" text-anchor="middle" class="dim-label" transform="rotate(-90 503 385)">W44: 14.90m</text>
+          <text x="628" y="444" text-anchor="middle" class="dim-label" transform="rotate(-90 628 444)">W45: 6.45m</text>
+          <text x="595" y="381" text-anchor="middle" class="dim-label">W46: 2.75m</text>
+          <text x="577.55" y="306" text-anchor="middle" class="dim-label">W49: 3.65m</text>
+          <text x="696" y="221" text-anchor="middle" class="dim-label" transform="rotate(-90 696 221)">W50: 5.85m</text>
+          <text x="600" y="177" text-anchor="middle" class="dim-label">W51: 4.95m</text>
+        </g>
+
+        <!-- NOMENCLATURA DE PUERTAS (D), VENTANAS (WIN) Y ESPACIOS LIBRES (OP) -->
+        <g id="layer-codes">
+          <text x="148" y="916" text-anchor="start" class="door-label">D01 (0.80)</text>
+          <text x="392" y="965" text-anchor="start" class="door-label">D02 (1.00)</text>
+          <text x="574" y="942" text-anchor="end" class="door-label">D03 (0.75)</text>
+          <text x="663" y="912" text-anchor="middle" class="door-label">D14 (0.80)</text>
+          <text x="622" y="653" text-anchor="middle" class="door-label">D06 (0.75)</text>
+          <text x="622" y="566" text-anchor="middle" class="door-label">D07 (0.75)</text>
+          <text x="615" y="495" text-anchor="end" class="door-label">D08 (0.80)</text>
+          <text x="716" y="497" text-anchor="start" class="door-label">D10 (0.80)</text>
+
+          <text x="161" y="907" text-anchor="middle" class="win-label">WIN01 (2.35)</text>
+          <text x="462" y="938" text-anchor="middle" class="win-label" transform="rotate(-90 462 938)">WIN02 (2.20)</text>
+          <text x="462" y="1080" text-anchor="middle" class="win-label" transform="rotate(-90 462 1080)">WIN17 (5.55)</text>
+          <text x="486.6" y="1171" text-anchor="middle" class="win-label">WIN18 (2.00)</text>
+          <text x="220" y="795" text-anchor="middle" class="win-label" transform="rotate(-90 220 795)">WIN03 (2.60)</text>
+          <text x="287.7" y="710" text-anchor="middle" class="win-label">WIN04 (3.20)</text>
+          <text x="433.9" y="710" text-anchor="middle" class="win-label">WIN05 (3.70)</text>
+          <text x="486.6" y="907" text-anchor="middle" class="win-label">WIN07 (1.80)</text>
+          <text x="671" y="797" text-anchor="middle" class="win-label" transform="rotate(-90 671 797)">WIN08 (5.50)</text>
+          <text x="538" y="1110" text-anchor="middle" class="win-label" transform="rotate(-90 538 1110)">WIN09 (2.50)</text>
+          <text x="538" y="998" text-anchor="middle" class="win-label" transform="rotate(-90 538 998)">WIN19 (1.40)</text>
+          <text x="538" y="926" text-anchor="middle" class="win-label" transform="rotate(-90 538 926)">WIN20 (0.80)</text>
+          <text x="556" y="668" text-anchor="middle" class="win-label" transform="rotate(-90 556 668)">WIN10</text>
+          <text x="556" y="545" text-anchor="middle" class="win-label" transform="rotate(-90 556 545)">WIN12</text>
+          <text x="528" y="606" text-anchor="middle" class="win-label" transform="rotate(-90 528 606)">WIN21 (5.10)</text>
+          <text x="528" y="450" text-anchor="middle" class="win-label" transform="rotate(-90 528 450)">WIN16 (1.80)</text>
+          <text x="528" y="343" text-anchor="middle" class="win-label" transform="rotate(-90 528 343)">WIN22 (0.80)</text>
+          <text x="528" y="239" text-anchor="middle" class="win-label" transform="rotate(-90 528 239)">WIN14 (1.70)</text>
+          <text x="599.65" y="204" text-anchor="middle" class="win-label">WIN15 (3.45)</text>
+
+          <text x="193" y="915" text-anchor="end" class="op-label">OP01 (0.85)</text>
+          <text x="260.5" y="907" text-anchor="middle" class="op-label">OP05 (0.80)</text>
+          <text x="662" y="998" text-anchor="start" class="op-label">OP03 (1.18)</text>
+          <text x="662" y="945" text-anchor="start" class="op-label">OP04 (0.83)</text>
+          <text x="625" y="711" text-anchor="end" class="op-label">OP07 (0.60)</text>
+          <text x="665" y="689" text-anchor="middle" class="op-label">OP02 (0.90)</text>
+          <text x="626" y="609" text-anchor="end" class="op-label">OP06 (0.80)</text>
+          <text x="531" y="381" text-anchor="middle" class="op-label">OP08 (0.90)</text>
+        </g>
+      </svg>
+    </div>
+  </main>
+
+  <script>
+    function toggleLayer(id, visible) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = visible ? "" : "none";
+    }
+  </script>
+</body>
+</html>
